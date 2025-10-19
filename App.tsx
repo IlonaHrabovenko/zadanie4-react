@@ -1,52 +1,130 @@
+import React, { useState } from "react";
+import { StyleSheet, Text, View, TouchableOpacity, StatusBar } from "react-native";
 
-import React, { useState } from 'react';
-import {
-  StatusBar,
-  StyleSheet,
-  useColorScheme,
-  View,
-  Text,
-  TouchableOpacity
-} from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+export default function App() {
+  const [display, setDisplay] = useState("0");
+  const [firstValue, setFirstValue] = useState<number | null>(null);
+  const [operator, setOperator] = useState<string | null>(null);
+  const [waitingForSecondValue, setWaitingForSecondValue] = useState(false);
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+  const press = (val: string) => {
+    if (["+", "-", "×", "÷"].includes(val)) {
+      setOperator(val);
+      setFirstValue(parseFloat(display.replace(",", ".")));
+      setWaitingForSecondValue(true);
+      return;
+    }
 
-  return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
+    if (val === "=") {
+      if (operator && firstValue !== null) {
+        const second = parseFloat(display.replace(",", "."));
+        let res = 0;
+        switch (operator) {
+          case "+": res = firstValue + second; break;
+          case "-": res = firstValue - second; break;
+          case "×": res = firstValue * second; break;
+          case "÷": res = second !== 0 ? firstValue / second : 0; break;
+        }
+        const out = Number.isInteger(res)
+          ? res.toString()
+          : res.toFixed(6).replace(".", ",").replace(/,?0+$/, "");
+        setDisplay(out);
+        setOperator(null);
+        setFirstValue(null);
+        setWaitingForSecondValue(false);
+      }
+      return;
+    }
+
+    if (val === "AC") {
+      setDisplay("0");
+      setOperator(null);
+      setFirstValue(null);
+      setWaitingForSecondValue(false);
+      return;
+    }
+
+    if (val === ",") {
+      if (!display.includes(",")) setDisplay(display + ",");
+      return;
+    }
+
+    if (waitingForSecondValue) {
+      setDisplay(val);
+      setWaitingForSecondValue(false);
+    } else {
+      setDisplay(display === "0" ? val : display + val);
+    }
+  };
+
+  const Btn = ({ label, color, flex = 1 }: { label: string; color?: string; flex?: number }) => (
+    <TouchableOpacity
+      style={[styles.btn, { backgroundColor: color || "#333333", flex }]}
+      onPress={() => press(label)}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.btnText}>{label}</Text>
+    </TouchableOpacity>
   );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  const [visible, setVisible] = useState(false);
 
   return (
-    <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
-      <Text style={styles.title}>Zadanie 3</Text>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => setVisible(!visible)}>
-        <Text style={styles.buttonText}>{visible ? 'Ukryj' : 'Pokaż'}</Text>
-      </TouchableOpacity>
+      <View style={styles.display}>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={styles.displayText}>
+          {display}
+        </Text>
+      </View>
 
-      {visible && (
-        <View style={styles.textBox}>
-          <Text style={styles.text}>Ilona</Text>
-          <Text style={styles.text}>Hrabovenko</Text>
+
+      <View style={styles.keypad}>
+
+        <View style={styles.left}>
+
+          <View style={styles.row}>
+            <Btn label="AC" color="#A5A5A5" />
+            <Btn label="" color="#A5A5A5" flex={2} />
+          </View>
+
+
+          <View style={styles.row}>
+            <Btn label="7" />
+            <Btn label="8" />
+            <Btn label="9" />
+          </View>
+
+
+          <View style={styles.row}>
+            <Btn label="4" />
+            <Btn label="5" />
+            <Btn label="6" />
+          </View>
+
+
+          <View style={styles.row}>
+            <Btn label="1" />
+            <Btn label="2" />
+            <Btn label="3" />
+          </View>
+
+
+          <View style={[styles.row, styles.bottomRow]}>
+            <Btn label="0" flex={2} />
+            <Btn label="," />
+          </View>
         </View>
-      )}
 
+
+        <View style={styles.right}>
+          <Btn label="÷" color="#FF9500" />
+          <Btn label="×" color="#FF9500" />
+          <Btn label="-" color="#FF9500" />
+          <Btn label="+" color="#FF9500" />
+          <Btn label="=" color="#FF9500" />
+        </View>
+      </View>
     </View>
   );
 }
@@ -54,33 +132,54 @@ function AppContent() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#000",
+    justifyContent: "flex-end",
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 10,
+  display: {
+    flex: 1,
+    backgroundColor: "#1C1C1C",
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
     paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  displayText: {
+    color: "#fff",
+    fontSize: 90,
+    fontWeight: "200",
+  },
+  keypad: {
+    flexDirection: "row",
+    paddingBottom: 15,
+  },
+  left: {
+    flex: 3,
+    paddingHorizontal: 5,
+  },
+  right: {
+    flex: 1,
+    paddingHorizontal: 5,
+    justifyContent: "space-between",
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  bottomRow: {
+    marginBottom: 0,
+  },
+  btn: {
+    height: 80,
+    marginHorizontal: 5,
     borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    borderColor: "#000",
+    borderWidth: 1,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  textBox: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 18,
+  btnText: {
+    color: "#fff",
+    fontSize: 32,
   },
 });
-
-export default App;
